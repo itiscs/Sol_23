@@ -1,0 +1,72 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Home page";
+}
+
+<div>
+    <p>
+        Contract interface.
+    </p>
+    <dl>
+        <dt>
+            <button id="btnRetrieve">Получить</button>
+        </dt>
+        <dd>
+            <span id="spValue"></span>
+        </dd>
+        <dt>
+            <input type="text" id="txtValue" placeholder="0" />
+        </dt>
+        <dd>
+            <button id="btnStore">Сохранить</button>
+
+        </dd>
+    </dl>
+
+</div>
+
+
+<script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js"
+        type="application/javascript"></script>
+
+<script>
+
+    // A Human-Readable ABI; for interacting with the contract, we
+    // must include any fragment we wish to use
+    const abi = [
+        "function retrieve() view returns (uint256)",
+        "function store(uint256 num)"
+    ];
+
+
+    // Connect to the network
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    const signer = provider.getSigner()
+    let accounts = provider.send("eth_requestAccounts", []);
+
+    // This can be an address or an ENS name
+    let contractAddress = "0xb16f23368892C362F2303E9dD82eDb5Be1cfb34b";
+
+    let contract = new ethers.Contract(contractAddress, abi, provider);
+
+    document.getElementById("btnRetrieve").addEventListener("click", async e => {
+
+            document.getElementById("spValue").innerText = await contract.retrieve();
+
+        });
+
+    document.getElementById("btnStore").addEventListener("click", async e => {
+
+        let val = document.getElementById("txtValue").value;
+
+        const contractWithSigner = contract.connect(signer);
+
+        let tx = await contractWithSigner.store(val);
+
+        console.log(tx.hash.toString());
+
+    });
+
+
+</script>

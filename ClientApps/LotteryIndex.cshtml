@@ -1,0 +1,121 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Home page";
+}
+
+<div class="text-center">
+    <h1 class="display-4">Welcome</h1>
+    <table>
+        <tr>
+            <td> <button id="btnCount">Количество участников</button> </td>
+            <td> <label id="lblCount" title=""/> </td>
+        </tr>
+        <tr>
+            <td> <input type="text" id="txtDep" value="0"/> </td>
+            <td> <button id="btnDeposit">Участвовать</button> </td>
+        </tr> 
+        <tr>
+            <td> <button id="btnList">Показать участников</button> </td>
+            <td> <ul id="lstPlayers"/> </td>
+        </tr>
+        <tr>
+            <td colspan="2"> <button id="btnFinish">Завершить лотерею</button> </td>            
+        </tr>
+
+    </table>
+    
+
+
+</div>
+
+
+<script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js"
+        type="application/javascript"></script>
+
+<script>
+
+    // A Human-Readable ABI; for interacting with the contract, we
+    // must include any fragment we wish to use
+    const abi = [
+        "function getPlayersCount() view returns(uint)",
+        "function getPlayer(uint) view returns(address)",
+        "function getManager() view returns(address)",
+        "function depositEther() payable",
+        "function selectWinner()"
+    ];
+
+
+    // Connect to the network
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    
+    // This can be an address or an ENS name
+    let contractAddress = "0x176aBE56A4eEcF46Af655066cAdE5Df9b6f08Bea";
+    let contract = new ethers.Contract(contractAddress, abi, provider);
+
+    window.addEventListener('load', async e =>  {
+        let accounts = await provider.send("eth_requestAccounts", []);
+        let manager = await contract.getManager();
+        
+        console.log(accounts[0]);
+        console.log(manager);
+
+        if(accounts[0] == manager.toLowerCase())
+        {
+            document.getElementById("btnFinish").disabled = false;
+        }
+        else
+            document.getElementById("btnFinish").disabled = true;
+    });
+
+    document.getElementById("btnList").addEventListener("click", async e => {
+
+            const n = await contract.getPlayersCount();
+            var ul = document.getElementById("lstPlayers");
+            
+            for(let i=0; i<n; i++)
+            {
+                adr = await contract.getPlayer(i);
+                var li = document.createElement("li");
+                li.appendChild(document.createTextNode(adr.toString()));
+                ul.appendChild(li);
+            }
+        });
+
+
+    document.getElementById("btnCount").addEventListener("click", async e => {
+
+            document.getElementById("lblCount").innerText = await contract.getPlayersCount();
+           
+    });
+
+    document.getElementById("btnDeposit").addEventListener("click", async e => {
+
+        let val = document.getElementById("txtDep").value;
+
+        await provider.send('eth_requestAccounts', []);
+        const signer = provider.getSigner()
+
+        const contractWithSigner = contract.connect(signer);
+
+        const options = { value: ethers.utils.parseEther(val.toString()) };
+        let tx = await contractWithSigner.depositEther(options);
+
+        console.log(tx.hash.toString());
+
+    });
+    
+    document.getElementById("btnFinish").addEventListener("click", async e => {
+
+        const signer = provider.getSigner()
+
+        const contractWithSigner = contract.connect(signer);
+
+        var tx = await contractWithSigner.selectWinner();
+
+    });
+
+
+</script>
+
+
